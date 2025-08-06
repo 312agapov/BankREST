@@ -19,7 +19,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> auth(@RequestBody JwtAccess jwtAccess, HttpServletRequest request) {
+    public ResponseEntity<JwtResponse> auth(@RequestBody JwtAccess jwtAccess, HttpServletRequest request) {
 
         JwtResponse response = authService.generateJwtToken(jwtAccess);
         return ResponseEntity.ok(response);

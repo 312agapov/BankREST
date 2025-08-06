@@ -1,5 +1,6 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.DataDto;
 import com.example.bankcards.dto.JwtAccess;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.service.UserService;
@@ -19,27 +20,27 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> addUser(@RequestBody JwtAccess jwtAccess) {
+    public ResponseEntity<User> addUser(@RequestBody JwtAccess jwtAccess) {
         return ResponseEntity.ok(userService.addUser(jwtAccess));
     }
 
     @GetMapping
-    public ResponseEntity<?> getUsers(@RequestParam(required = false) Integer page) {
+    public ResponseEntity<DataDto<User>> getUsers(@RequestParam(required = false) Integer page) {
         return ResponseEntity.ok(userService.findAllUsers(page));
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserById(@PathVariable("userId") UUID userId) {
+    public ResponseEntity<User> getUserById(@PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.getUserById(userId));
     }
 
     @PutMapping
-    public ResponseEntity<?> editUser(@RequestBody User user) {
+    public ResponseEntity<User> editUser(@RequestBody User user) {
         return ResponseEntity.ok(userService.editUser(user));
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable("userId") UUID userId) {
+    public ResponseEntity<Void> deleteUser(@PathVariable("userId") UUID userId) {
         userService.deleteUserById(userId);
         return ResponseEntity.ok().build();
     }
