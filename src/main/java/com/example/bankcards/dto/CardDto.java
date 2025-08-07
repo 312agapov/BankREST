@@ -8,42 +8,51 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * DTO для карты (без полного номера).
+ */
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CardDto {
+    /** ID карты */
     private UUID id;
-    private String maskedCardNumber; // Будет содержать только последние 4 цифры
+    /** Маскированный номер (****1234) */
+    private String maskedCardNumber;
+    /** ID владельца */
     private UUID userId;
+    /** Срок действия */
     private LocalDateTime expireAt;
+    /** Статус */
     private CardStatus status;
+    /** Баланс */
     private BigDecimal balance;
+    /** Заблокирована */
     private Boolean blockFlag;
 
-
+    /**
+     * Создает DTO из сущности Card.
+     * @param card сущность карты
+     * @return DTO карты
+     */
     public static CardDto fromEntity(Card card) {
-        CardDto dto = new CardDto();
-        dto.setId(card.getId());
-        dto.setMaskedCardNumber(maskCardNumber(card.getCardNumber()));
-        dto.setUserId(card.getUser().getId());
-        dto.setExpireAt(card.getExpireAt());
-        dto.setStatus(card.getStatus());
-        dto.setBalance(card.getBalance());
-        dto.setBlockFlag(card.getBlockFlag());
-        return dto;
+        return CardDto.builder()
+                .id(card.getId())
+                .maskedCardNumber(maskCardNumber(card.getCardNumber()))
+                .userId(card.getUser().getId())
+                .expireAt(card.getExpireAt())
+                .status(card.getStatus())
+                .balance(card.getBalance())
+                .blockFlag(card.getBlockFlag())
+                .build();
     }
 
     private static String maskCardNumber(String cardNumber) {
         if (cardNumber == null || cardNumber.length() < 4) {
-            return cardNumber; // или можно выбросить исключение
+            return cardNumber;
         }
-
-        String masked = cardNumber.substring(0, cardNumber.length() - 4)
-                .replaceAll(".", "*");
-        String lastFour = cardNumber.substring(cardNumber.length() - 4);
-
-        return masked + lastFour;
+        return "****" + cardNumber.substring(cardNumber.length() - 4);
     }
 }

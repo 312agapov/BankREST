@@ -11,6 +11,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Сущность пользователя системы.
+ */
 @Getter
 @Setter
 @Builder
@@ -24,13 +27,18 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** Логин пользователя */
     private String username;
+
+    /** Пароль (захешированный) */
     private String password;
 
+    /** Роль пользователя */
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
 
+    /** Список карт пользователя */
     @JsonIgnore
     @OneToMany(mappedBy = "user", orphanRemoval = true)
     private List<Card> cards;

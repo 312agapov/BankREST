@@ -3,9 +3,14 @@ package com.example.bankcards.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-@AllArgsConstructor
+/**
+ * Запрос аутентификации.
+ */
 @Data
+@AllArgsConstructor
 public class JwtAccess {
-    protected String username;
-    protected String password;
+    /** Логин */
+    private String username;
+    /** Пароль */
+    private String password;
 }

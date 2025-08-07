@@ -12,15 +12,14 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+/**
+ * Сервис для работы с JWT токенами (генерация, валидация, парсинг).
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"unused"})
 public class JwtServiceImpl implements JwtService {
 
     private static final String USER_ID_CLAIM_KEY = "userId";
@@ -32,34 +31,44 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.access.exp_time}")
     protected String accessExpirationTime;
 
+    /**
+     * Генерирует JWT токен для пользователя.
+     * @param subject имя пользователя (subject токена)
+     * @param user объект пользователя
+     * @return сгенерированный JWT токен
+     * @throws NullPointerException если:
+     *         - user = null
+     *         - user.id = null
+     *         - user.role = null
+     */
     @Override
     public String generateToken(String subject, @Nullable User user) {
+        if (user == null) {
+            throw new NullPointerException("User object is null");
+        }
+
         Date date = new Date();
+        UUID userId = Optional.ofNullable(user.getId())
+                .orElseThrow(() -> new NullPointerException("User ID is null"));
+        String roleName = Optional.ofNullable(user.getRole())
+                .map(Role::getName)
+                .orElseThrow(() -> new NullPointerException("User role is null"));
 
-        UUID userId;
-        String roleName;
-        if (user.getId() != null){
-            userId = user.getId();
-        } else {
-            throw new NullPointerException("ID юзера равен null");
-        }
-        if (user.getRole() != null){
-            roleName = user.getRole().getName();
-        } else {
-            throw new NullPointerException("У пользователя нет роли!");
-        }
-
-        JwtBuilder builder = Jwts.builder()
+        return Jwts.builder()
                 .signWith(getSecretKey(), Jwts.SIG.HS512)
                 .subject(subject)
                 .issuedAt(date)
                 .claim(USER_ID_CLAIM_KEY, userId)
                 .claim(ROLENAME_CLAIM_KEY, roleName)
-                .expiration(new Date(date.getTime() + getExpiration()));
-
-        return builder.compact();
+                .expiration(new Date(date.getTime() + getExpiration()))
+                .compact();
     }
 
+    /**
+     * Проверяет валидность токена.
+     * @param token JWT токен
+     * @return true если токен валиден, false в противном случае
+     */
     @Override
     public boolean validateToken(String token) {
         try {
@@ -67,7 +76,6 @@ public class JwtServiceImpl implements JwtService {
                     .verifyWith(getSecretKey())
                     .build()
                     .parseSignedClaims(token);
-
             return true;
         } catch (ExpiredJwtException expEx) {
             log.error("Token expired: {}", expEx.getMessage());
@@ -81,17 +89,30 @@ public class JwtServiceImpl implements JwtService {
         return false;
     }
 
+    /**
+     * Возвращает секретный ключ для подписи токенов.
+     * @return SecretKey
+     */
     @Override
     public SecretKey getSecretKey() {
         byte[] encodeKey = Base64.getDecoder().decode(accessSecret);
         return Keys.hmacShaKeyFor(encodeKey);
     }
 
+    /**
+     * Возвращает время жизни токена в миллисекундах.
+     * @return время в ms
+     */
     @Override
     public Long getExpiration() {
         return Long.parseLong(accessExpirationTime);
     }
 
+    /**
+     * Извлекает claims (утверждения) из токена.
+     * @param token JWT токен
+     * @return объект Claims
+     */
     @Override
     public Claims getClaims(String token) {
         return Jwts.parser()
@@ -101,6 +122,11 @@ public class JwtServiceImpl implements JwtService {
                 .getPayload();
     }
 
+    /**
+     * Создает объект аутентификации на основе claims токена.
+     * @param claims утверждения из токена
+     * @return объект JwtAuthentication
+     */
     @Override
     public JwtAuthentication authenticate(Claims claims) {
         final JwtAuthentication jwtInfoToken = new JwtAuthentication();

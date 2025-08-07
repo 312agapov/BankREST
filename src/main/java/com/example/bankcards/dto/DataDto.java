@@ -5,6 +5,9 @@ import lombok.*;
 
 import java.util.List;
 
+/**
+ * Обертка для пагинированных данных.
+ */
 @Data
 @Getter
 @Setter
@@ -13,7 +16,10 @@ import java.util.List;
 @Builder
 @JsonInclude(value = JsonInclude.Include.NON_NULL)
 public class DataDto<T> {
+    /** Список элементов */
     private List<T> data;
+    /** Всего страниц */
     private int totalPages;
+    /** Всего элементов */
     private long totalElements;
 }

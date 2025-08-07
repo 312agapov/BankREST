@@ -21,9 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Сервис для работы с пользователями системы.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
@@ -35,33 +37,61 @@ public class UserService implements UserDetailsService {
     @Value("${app.pagination.limit}")
     private int paginationLimit;
 
+    /**
+     * Регистрирует нового пользователя.
+     * @param jwtAccess данные для регистрации (логин и пароль)
+     * @return зарегистрированный пользователь
+     * @throws IllegalStateException если:
+     *         - данные неполные
+     *         - пользователь уже существует
+     * @throws NoSuchElementException если роль USER не найдена
+     */
     public User addUser(JwtAccess jwtAccess) {
         if (StringUtils.isEmpty(jwtAccess.getUsername()) || StringUtils.isEmpty(jwtAccess.getPassword())) {
             throw new IllegalStateException("Введены неполные данные пользователя!");
-        } else {
-            if (userRepository.findByUsername(jwtAccess.getUsername()).isPresent()) {
-                throw new IllegalStateException("Пользователь с таким username уже существует!");
-            }
-            User user = new User();
-            user.setUsername(jwtAccess.getUsername());
-
-            Optional<Role> roleIfPresent = roleRepository.findByName(Constants.Roles.ROLE_USER_CODE);
-
-            user.setPassword(passwordEncoder.encode(jwtAccess.getPassword()));
-            user.setRole(roleIfPresent.orElseThrow(() -> new NoSuchElementException("Произошла ошибка, обратитесь к администратору")));
-            return userRepository.save(user);
         }
+
+        if (userRepository.findByUsername(jwtAccess.getUsername()).isPresent()) {
+            throw new IllegalStateException("Пользователь с таким username уже существует!");
+        }
+
+        User user = new User();
+        user.setUsername(jwtAccess.getUsername());
+        user.setPassword(passwordEncoder.encode(jwtAccess.getPassword()));
+
+        Role userRole = roleRepository.findByName(Constants.Roles.ROLE_USER_CODE)
+                .orElseThrow(() -> new NoSuchElementException("Произошла ошибка, обратитесь к администратору"));
+        user.setRole(userRole);
+
+        return userRepository.save(user);
     }
 
+    /**
+     * Находит пользователя по ID.
+     * @param id UUID пользователя
+     * @return найденный пользователь
+     * @throws IllegalStateException если пользователь не найден
+     */
     public User getUserById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalStateException("Пользователь не был найден в БД!"));
     }
 
+    /**
+     * Удаляет пользователя по ID.
+     * @param id UUID пользователя
+     */
     public void deleteUserById(UUID id) {
         userRepository.deleteById(id);
     }
 
+    /**
+     * Обновляет данные пользователя.
+     * @param updatedUser новые данные пользователя
+     * @return обновленный пользователь
+     * @throws NoSuchElementException если пользователь не найден
+     * @throws IllegalArgumentException если username уже занят
+     */
     @Transactional
     public User editUser(User updatedUser) {
         User existingUser = userRepository.findById(updatedUser.getId())
@@ -81,19 +111,26 @@ public class UserService implements UserDetailsService {
             existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
         }
 
-        updatedUser.setPassword(existingUser.getPassword());
-        updatedUser.setRole(existingUser.getRole());
-        updatedUser.setCards(existingUser.getCards());
-
-        return userRepository.save(updatedUser);
+        return userRepository.save(existingUser);
     }
 
+    /**
+     * Загружает пользователя по username для Spring Security.
+     * @param username логин пользователя
+     * @return UserDetails
+     * @throws UsernameNotFoundException если пользователь не найден
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
     }
 
+    /**
+     * Возвращает список пользователей с пагинацией.
+     * @param page номер страницы (начиная с 1), null - все пользователи
+     * @return список пользователей с метаданными пагинации
+     */
     public DataDto<User> findAllUsers(Integer page) {
         if (page != null) {
             int actualPage = page - 1;

@@ -14,6 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Сервис для аутентификации и генерации JWT-токенов.
+ */
 @RequiredArgsConstructor
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -23,6 +26,15 @@ public class AuthServiceImpl implements AuthService {
     protected final UserRepository userRepository;
     protected final AuthenticationManager authenticationManager;
 
+    /**
+     * Генерирует JWT-токен для аутентифицированного пользователя.
+     * @param jwtAccess данные для входа (логин и пароль)
+     * @return JWT-токен и имя пользователя
+     * @throws RuntimeException если:
+     *         - пользователь не найден
+     *         - неверный пароль
+     *         - ошибка аутентификации
+     */
     @Override
     public JwtResponse generateJwtToken(JwtAccess jwtAccess) {
         Optional<User> user = userRepository.findByUsername(jwtAccess.getUsername());
@@ -34,9 +46,16 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Пользователь не найден");
         }
 
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.get().getUsername(), jwtAccess.getPassword()));
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.get().getUsername(),
+                        jwtAccess.getPassword()
+                )
+        );
 
-        return new JwtResponse(jwtService.generateToken(user.get().getUsername(),user.get()),
-                user.get().getUsername());
+        return new JwtResponse(
+                jwtService.generateToken(user.get().getUsername(), user.get()),
+                user.get().getUsername()
+        );
     }
 }
