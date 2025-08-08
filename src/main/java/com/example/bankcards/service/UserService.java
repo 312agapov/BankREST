@@ -46,6 +46,7 @@ public class UserService implements UserDetailsService {
      *         - пользователь уже существует
      * @throws NoSuchElementException если роль USER не найдена
      */
+    @Transactional
     public User addUser(JwtAccess jwtAccess) {
         if (StringUtils.isEmpty(jwtAccess.getUsername()) || StringUtils.isEmpty(jwtAccess.getPassword())) {
             throw new IllegalStateException("Введены неполные данные пользователя!");
@@ -81,6 +82,7 @@ public class UserService implements UserDetailsService {
      * Удаляет пользователя по ID.
      * @param id UUID пользователя
      */
+    @Transactional
     public void deleteUserById(UUID id) {
         userRepository.deleteById(id);
     }

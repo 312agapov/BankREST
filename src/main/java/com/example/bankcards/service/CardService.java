@@ -30,6 +30,11 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+/**
+ * Сервис для работы с банковскими картами.
+ * Предоставляет методы для создания, активации, блокировки, редактирования,
+ * удаления карт, а также для выполнения операций перевода денег между картами.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -41,6 +46,16 @@ public class CardService {
     @Value("${app.pagination.limit}")
     private int paginationLimit;
 
+    /**
+     * Создает новую банковскую карту для указанного пользователя.
+     *
+     * @param card данные новой карты
+     * @param userId идентификатор пользователя
+     * @return созданная карта
+     * @throws NoSuchElementException если пользователь не найден
+     * @throws IllegalArgumentException если номер карты невалиден
+     */
+    @Transactional
     public Card add(Card card, UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new NoSuchElementException("Пользователь с таким ID не найден!"));
@@ -61,6 +76,14 @@ public class CardService {
         return cardRepository.save(newCard);
     }
 
+    /**
+     * Активирует карту с указанным идентификатором.
+     *
+     * @param cardId идентификатор карты
+     * @return активированная карта
+     * @throws NoSuchElementException если карта не найдена
+     */
+    @Transactional
     public Card activateCard(UUID cardId) {
         Card card = cardRepository.findById(cardId).orElseThrow(() ->
                 new NoSuchElementException("Карта не была найдена в БД!"));
@@ -68,6 +91,14 @@ public class CardService {
         return cardRepository.save(card);
     }
 
+    /**
+     * Блокирует карту с указанным идентификатором.
+     *
+     * @param cardId идентификатор карты
+     * @return заблокированная карта
+     * @throws NoSuchElementException если карта не найдена
+     */
+    @Transactional
     public Card blockCard(UUID cardId) {
         Card card = cardRepository.findById(cardId).orElseThrow(() ->
                 new NoSuchElementException("Карта не была найдена в БД!"));
@@ -75,6 +106,15 @@ public class CardService {
         return cardRepository.save(card);
     }
 
+    /**
+     * Помечает карту для блокировки администратором (устанавливает флаг blockFlag).
+     * Доступно только владельцу карты.
+     *
+     * @param cardId идентификатор карты
+     * @throws NoSuchElementException если карта не найдена
+     * @throws AccessDeniedException если пользователь не является владельцем карты
+     */
+    @Transactional
     public void blockCardByUser(UUID cardId) {
         Card card = cardRepository.findById(cardId).orElseThrow(() ->
                 new NoSuchElementException("Карта не была найдена в БД!"));
@@ -95,6 +135,12 @@ public class CardService {
         }
     }
 
+    /**
+     * Выполняет перевод денег между картами пользователя.
+     *
+     * @param transfer данные перевода (отправитель, получатель, сумма)
+     * @throws IllegalArgumentException если карты не найдены, баланс отрицательный или недостаточно средств
+     */
     @Transactional
     public void transferMoney(TransferDto transfer) {
         JwtAuthentication auth = (JwtAuthentication) SecurityContextHolder.getContext().getAuthentication();
@@ -132,6 +178,15 @@ public class CardService {
         cardRepository.saveAll(List.of(fromCard, toCard));
     }
 
+    /**
+     * Возвращает баланс указанной карты.
+     * Доступно только владельцу карты.
+     *
+     * @param cardId идентификатор карты
+     * @return баланс карты
+     * @throws NoSuchElementException если карта не найдена
+     * @throws AccessDeniedException если пользователь не является владельцем карты
+     */
     public BigDecimal getBalance(UUID cardId){
         Card card = cardRepository.findById(cardId).orElseThrow(() ->
                 new NoSuchElementException("Карта не была найдена в БД!"));
@@ -144,6 +199,15 @@ public class CardService {
         return card.getBalance();
     }
 
+    /**
+     * Возвращает карту по идентификатору.
+     * Доступно только владельцу карты.
+     *
+     * @param id идентификатор карты
+     * @return найденная карта
+     * @throws NoSuchElementException если карта не найдена
+     * @throws AccessDeniedException если пользователь не является владельцем карты
+     */
     public Card getById(UUID id) {
         Card card = cardRepository.findById(id).orElseThrow(() ->
                 new NoSuchElementException("Карта не была найдена в БД!"));
@@ -155,6 +219,13 @@ public class CardService {
         return card;
     }
 
+    /**
+     * Редактирует данные карты.
+     *
+     * @param updatedCard обновленные данные карты
+     * @return отредактированная карта
+     * @throws NoSuchElementException если карта не найдена
+     */
     @Transactional
     public Card edit(Card updatedCard) {
         Card existingCard = cardRepository.findById(updatedCard.getId())
@@ -179,10 +250,22 @@ public class CardService {
         return cardRepository.save(existingCard);
     }
 
+    /**
+     * Удаляет карту по идентификатору.
+     *
+     * @param id идентификатор карты
+     */
+    @Transactional
     public void deleteById(UUID id) {
         cardRepository.deleteById(id);
     }
 
+    /**
+     * Возвращает список всех карт с пагинацией.
+     *
+     * @param page номер страницы (начиная с 1)
+     * @return список карт с информацией о пагинации
+     */
     public DataDto<Card> findAllCards(Integer page) {
         if (page != null) {
             int actualPage = page - 1;
@@ -199,8 +282,13 @@ public class CardService {
                 .build();
     }
 
+    /**
+     * Возвращает список карт текущего пользователя с пагинацией.
+     *
+     * @param page номер страницы (начиная с 1)
+     * @return список карт пользователя с информацией о пагинации
+     */
     public DataDto<CardDto> findAllUserCards(Integer page) {
-
         JwtAuthentication auth = (JwtAuthentication) SecurityContextHolder.getContext().getAuthentication();
         UUID userId = auth.getUserId();
 
@@ -225,6 +313,13 @@ public class CardService {
                 .build();
     }
 
+    /**
+     * Возвращает отфильтрованный список карт текущего пользователя.
+     * Поддерживает фильтрацию по балансу, дате истечения, статусу и флагу блокировки.
+     *
+     * @param request параметры фильтрации
+     * @return отфильтрованный список карт с информацией о пагинации
+     */
     public DataDto<CardDto> findAllFilteredCards(CardFilterRequest request) {
         JwtAuthentication auth = (JwtAuthentication) SecurityContextHolder.getContext().getAuthentication();
         UUID userId = auth.getUserId();
